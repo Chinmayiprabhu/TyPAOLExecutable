@@ -1,0 +1,1151 @@
+
+fmod DATA is
+  pr QID .
+  pr STRING .
+  pr INT .
+  pr NAT .
+  pr FLOAT .
+sorts Var Value Expr Alpha Tags  Oid MsgId Uid .
+subsort Qid < Uid < Var .
+subsort Qid < Var < Expr .
+subsort Value < Expr .
+****subsort Oid MsgId < NonPrivData .
+sort Entity Action Purpose Policy Use Collect Store Transfer  .
+
+op this : -> Var .
+op this(_) : Var -> Var .
+op noent : -> Entity .
+op empval : -> Values [ctor] .
+op empvar : -> VarList [ctor] .
+op empalpha : -> AlphaList [ctor] .
+sorts NeExprList ExprList NeValues Values NeTagsList TagsList NeVarList VarList OidList AlphaList .
+subsort Expr < NeExprList < ExprList .
+subsort Value < NeValues < Values .
+subsort NeValues < NeExprList .
+subsort Var Value < Expr .
+subsort Expr < Alpha .
+subsort ExprList < AlphaList .
+subsort Var < VarList .
+***op _,,_ : VarList VarList -> VarList [ctor].
+op _,,_ : AlphaList AlphaList -> AlphaList  [ctor] .
+op _,,_ : ExprList ExprList -> ExprList  [ctor] .
+endfm
+
+view Var from TRIV to DATA is
+   sort Elt to Var .
+endv
+
+fmod TyPaol-DATA-VIDLIST is
+  protecting LIST{Vid} * (sort List{Var} to VarList,
+                          sort NeList{Var} to NeVarList,
+                          op nil : -> List{Var} to noVar,
+                          op __ : List{Var} List{Var} -> List{Var} to _,,_ [format (d r os d)]) .
+endfm
+
+
+view Alpha from TRIV to DATA is
+   sort Elt to Alpha .
+endv
+
+
+view Value from TRIV to DATA is
+   sort Elt to Value .
+endv
+
+view Expr from TRIV to DATA is
+   sort Elt to Expr .
+endv
+
+view Uid from TRIV to DATA is
+   sort Elt to Uid .
+endv
+
+view Entity from TRIV to DATA is
+  sort Elt to Entity .
+endv
+
+view Purpose from TRIV to DATA is
+  sort Elt to Purpose .
+endv
+
+view Action from TRIV to DATA is
+  sort Elt to Action .
+endv
+
+view Policy from TRIV to DATA is
+  sort Elt to Policy .
+endv
+
+view Tags from TRIV to DATA is
+  sort Elt to Tags .
+endv
+
+fmod PURPOSE-SET is
+  protecting DATA .
+  protecting SET{Purpose} * (sort NeSet{Purpose} to NePurposeSet,
+                         sort Set{Purpose} to PurposeSet) .
+
+subsort Purpose < NePurposeSet < PurposeSet .
+
+endfm
+
+fmod ACTION-SET is
+  protecting DATA .
+  protecting SET{Action} * (sort NeSet{Action} to NeActionSet,
+                         sort Set{Action} to ActionSet) .
+  subsort Action < NeActionSet < ActionSet .
+
+endfm
+
+fmod ENTITY-SET is
+  protecting DATA .
+  protecting SET{Entity} * (sort NeSet{Entity} to NeEntitySet,
+                         sort Set{Entity} to EntitySet) .
+  subsort Entity < NeEntitySet < EntitySet .
+
+endfm
+
+fmod UID-SET is
+protecting DATA .
+protecting SET{Uid} * (sort NeSet{Uid} to NeUidSet,
+                         sort Set{Uid} to UidSet) .
+  subsort Uid < NeUidSet < UidSet .
+
+endfm
+fmod TAGS-SET is
+protecting DATA .
+protecting SET{Tags} * (sort NeSet{Tags} to NeTagsSet,
+                         sort Set{Tags} to TagsSet,
+                         op empty : ->  Set{Tags} to Emptags ) .
+  subsort Tags < NeTagsSet < TagsSet .
+
+endfm
+
+
+fmod Expr-SET is
+protecting DATA .
+protecting SET{Expr} * (sort NeSet{Expr} to NeExprSet,
+                         sort Set{Expr} to ExprSet,
+                         op empty : ->  Set{Expr} to EmpALpha ) .
+  subsort Expr < NeExprSet < ExprSet .
+
+endfm
+
+fmod VALUE-SET is
+protecting DATA .
+protecting SET{Value} * (sort NeSet{Value} to NeValueSet,
+                         sort Set{Value} to ValueSet,
+                         op empty : ->  Set{Value} to EmpValue ) .
+  subsort Value < NeValueSet < ValueSet .
+
+endfm
+
+
+fmod PRIV_DATA is
+  pr DATA .
+  protecting PURPOSE-SET .
+  protecting ACTION-SET .
+  protecting ENTITY-SET .
+  protecting UID-SET .
+  protecting TAGS-SET .
+
+  vars U U' : UidSet .
+  var P P' : PurposeSet .
+  var E E' : Expr .
+  var V : Value .
+  var EL : ExprList .
+  var T T' : Tags .
+  var AL : AlphaList .
+  vars TS TS' : TagsSet .
+  sort TagExpr TagVal .
+
+  subsort TagVal < Value .
+  subsort TagExpr < Alpha .
+  op (_,_,_) : EntitySet ActionSet PurposeSet  -> Policy .
+  op tags : UidSet PurposeSet  -> Tags .
+  op _^_ : Expr Tags -> Alpha . *** tagged expression
+  op _tag_ : Expr Tags -> TagExpr . *** explicit tagging expr
+  op _^_ : Value Tags -> TagExpr . ***runtime?
+  op Users(_) : TagsSet -> UidSet .
+  op Purposes(_) : TagsSet -> PurposeSet .
+  eq Users(tags(U, P) , Emptags ) = U .
+  eq Users(tags(U, P) , (TS)) = union(U, Users(TS)) .
+  eq Purposes(tags(U,P), Emptags) = P .
+  eq Purposes(tags(U, P) , (TS))  = union(P, Purposes(TS)) .
+
+
+  var VL : Values .
+  ops Use Collect Store Transfer : -> Action .
+  op getTags : AlphaList -> TagsSet .
+  eq getTags( (E ^ T) ,, AL ) = union (T , getTags(AL)) .
+  eq getTags( (E ^ T) ,, empalpha ) = T .
+  eq getTags( (V ^ T) ,, (VL)) = union (T , getTags(VL)) .
+  eq getTags( (V ^ T) ,, empval) = T .
+  eq getTags( (E) ,, AL) = getTags(AL) .
+
+  op oplss(_) : TagsSet -> Tags .
+  eq oplss(tags(U,P), TS) =   oplss(tags(U,P), oplss(TS)) .
+  eq oplss(tags(U,P), tags(U',P')) = tags( union( U, U') , intersection( P , P' )) .
+  eq oplss(tags(U,P), Emptags) =  tags(U,P) .
+
+  op _opls_ : TagsSet TagsSet -> Tags .
+  eq (tags(U,P), TS) opls (tags(U', P'), TS') = oplss (tags(U,P), TS) opls oplss(tags(U', P'), TS') .
+  eq tags(U,P) opls tags(U', P') = tags( union( U, U') , intersection( P , P' )) .
+  eq tags(U,P) opls Emptags  = tags(U,P) .
+  eq Emptags opls tags(U,P)  = tags(U,P) .
+
+endfm
+
+fmod Syntax-Types is
+  pr PRIV_DATA .
+  pr QID .
+  pr STRING .
+  pr INT .
+  pr NAT .
+  pr FLOAT .
+
+ sorts BasicType BasicUserType DataType Lambda PDType NPDType .
+ subsort NPDType < BasicType .
+ subsort PDType < BasicType .
+ subsort BasicType < DataType .
+ op int_ : Int -> NPDType . *** non-private type
+ op nat_ : Nat -> NPDType . *** non-private type
+ op float_ : Float -> NPDType . *** non-private type
+ op Bool_ : Bool -> NPDType . *** non-private type
+ op #(_) : NPDType -> PDType . *** private type
+ op _^[_] : NPDType Lambda -> DataType . *** T^Lambda
+ ***op _._ : Lambda Lambda -> Lambda [ctor ] .
+ op L(_,_) : VarList Tags -> Lambda [ctor] . ***Lamdb
+ op L : Tags -> Lambda .
+ op L : VarList -> Lambda .
+ ***op empL : -> Lambda .
+ op U(_) : Uid -> BasicUserType .
+ sort TYPE .
+ sort Alphatype AlphatypeList .
+
+ var V : Var .
+ var Dt : DataType .
+
+ subsort Alphatype < AlphatypeList .
+ ***subsort vartype < vartypeList .
+ op _::_ : Alpha TYPE  -> Alphatype [ctor] .
+***op emptyList : -> vartypeList [ctor] .
+op emptyList : -> AlphatypeList [ctor] .
+ ***op _;;_ : Alpha TYPE -> Alphatype [ctor] .
+ ****op _,_ : vartypeList vartypeList  -> vartypeList [ctor] .
+ ***op _,_ : AlphatypeList AlphatypeList  -> AlphatypeList [ctor] .
+
+endfm
+
+sort TYPEList .
+subsort TYPE < TYPEList .
+op _ _ : TYPEList TYPEList -> TYPEList [ctor ] .
+
+
+view Lambda from TRIV to Syntax-Types is
+  sort Elt to Lambda .
+endv
+
+
+view Alphatype from TRIV to Syntax-Types is
+  sort Elt to Alphatype .
+endv
+
+
+view Lambda from TRIV to Syntax-Types is
+  sort Elt to Lambda .
+endv
+
+
+fmod Lambda-SET is
+protecting DATA .
+protecting SET{Lambda} * (sort NeSet{Lambda} to NeLambdaSet,
+                         sort Set{Lambda} to LambdaSet,
+                         op empty : ->  Set{Lambda} to empL ) .
+  subsort Lambda < NeLambdaSet < LambdaSet .
+
+endfm
+
+
+*** The sort of a class identifier.
+fmod PAOL-CID is
+  protecting QID .
+  sort Cid .
+  subsort Qid < Cid .
+
+  op Class : -> Cid [ctor] .
+  op None : -> Cid [ctor] .
+endfm
+
+view Cid from TRIV to PAOL-CID is
+  sort Elt to Cid .
+endv
+
+*** The sort of a Object identifier.
+fmod PAOL-OID is
+  protecting PAOL-CID .
+  protecting NAT .
+  protecting DATA .
+
+  subsort Oid < Alpha .
+--- Constructor of object names
+  op ob : Cid Int -> Oid [ctor] . *** or do the below
+  ***op ob  : Qid       -> Oid  [ctor] .
+endfm
+
+view Oid from TRIV to PAOL-OID is
+  sort Elt to Oid .
+endv
+
+fmod OID-SET is
+  protecting PRIV_DATA .
+  protecting SET{Oid} * (sort NeSet{Oid} to NeOidSet,
+                         sort Set{Oid} to OidSet) .
+subsort Oid < NeOidSet < OidSet .
+
+endfm
+
+*** The sort of a Method identifier.
+fmod PAOL-MID is
+  protecting QID .
+
+  sort Mid .
+  subsort Qid < Mid .
+endfm
+
+*** The sort of a Label identifier.
+
+fmod PAOL-DATA-LABEL is
+  protecting PRIV_DATA .
+  protecting PAOL-OID .
+
+  sort Label .
+  subsort Label < Alpha .
+  --- A label consists of the id of the sending object plus a unique number.
+  op label : Oid Nat -> Label [ctor format (o o)] .
+endfm
+
+view Label from TRIV to PAOL-DATA-LABEL is
+  sort Elt to Label .
+endv
+
+fmod CONSENT is
+protecting PRIV_DATA .
+protecting OID-SET .
+protecting SET{Policy} * (sort NeSet{Policy} to NeSetPl,
+                            sort Set{Policy} to SetPl) .
+
+sort Consent NeConsentSet ConsentSet .
+subsort Consent < NeConsentSet < ConsentSet .
+op emppl : -> SetPl .
+op (_->_:_) : Uid SetPl VarList ->  Consent [ctor ] .
+op none : -> ConsentSet [ctor] . *** Empty multiset
+op _,_ : ConsentSet ConsentSet -> ConsentSet [ctor assoc comm id: none] .
+op _,_ : NeConsentSet NeConsentSet -> NeConsentSet [ctor assoc comm id: none] .
+op deleteC : Consent ConsentSet -> ConsentSet . *** Remove ONE occurrence
+op _in_ : Consent ConsentSet -> Bool . *** Is element in multiset?
+var C : Consent . var CnSet : ConsentSet .
+eq deleteC(C , (C,CnSet)) = deleteC(C , CnSet) .
+eq deleteC(C, CnSet) = CnSet [owise] .
+eq C in (C , CnSet) = true .
+eq C in CnSet = false [owise] .
+op insertC : Consent ConsentSet -> ConsentSet .
+eq insertC(C , CnSet) = C , CnSet .
+
+endfm
+
+
+
+fmod PAOL-STATEMENTS is
+protecting PAOL-DATA-LABEL .
+protecting PAOL-CID .
+protecting PAOL-MID .
+protecting Syntax-Types .
+sort Stm sort TAlpha .
+op _:_ : Alpha TYPE -> TAlpha .
+op skip : -> Stm [ctor] .
+op _:= NewUser : Var -> Stm [ctor] .
+op assign(_;_) : Var TAlpha -> Stm [ctor] .
+***op tag(_;_) : Expr Tags -> PrivData [ctor] .
+op asyncall(_;_;_;_) : vartype Var Mid AlphatypeList -> Stm [ctor] . *** async call
+op new(_;_;_;_) : Var Cid AlphatypeList Entity -> Stm [ctor] .
+op get(_;_) : Var Var  -> Stm [ctor] .
+op get(_;_) :  Var Label -> Stm [ctor] .
+op call(_;_;_;_) : Label Oid Mid Values -> Stm [ctor] .
+op return(_) : Expr -> Stm [ctor] .
+op mark(_) : Expr -> Stm [ctor] .
+op release(_) : Expr -> Stm [ctor] .
+op _.addInst(_) : Var Var -> Stm [ctor] . ***notsure if oid or expr
+op _.remInst(_) : Var Var -> Stm [ctor] . ***notsure if oid or expr
+op _.addCon(_) : Var Policy -> Stm [ctor] .
+op _.remCon(_) : Var Policy -> Stm [ctor] .
+op end : -> Stm .
+
+endfm
+
+view Stm from TRIV to PAOL-STATEMENTS is
+   sort Elt to Stm .
+endv
+
+fmod STM-LIST is
+pr PAOL-STATEMENTS .
+protecting LIST{Stm} * (sort List{Stm} to StmList,
+                        sort NeList{Stm} to NeStmList,
+                        op nil : -> List{Stm} to noStm,
+                        op __ : List{Stm} List{Stm} -> List{Stm} to _;_  ) .
+op if(_){_} : Expr StmList -> Stm [ctor] .
+var V : Var .
+var E : Expr .
+var EL : ExprList .
+***eq assign(V ; empval)  = skip . *** Note that skip takes a step
+***eq assign(empval ; E)   = skip .
+endfm
+
+
+
+
+
+fmod PAOL-METHOD is
+  protecting Syntax-Types .
+  protecting STM-LIST .
+  protecting PAOL-MID .
+  sort Method .
+  op <_: Method | ReturnType :_, Param:_, Annotation:_ ,Latt:_, Code:_> :
+    Mid DataType vartypeList Lambda vartype StmList -> Method
+    [ctor ] .
+***format (nib ! ob o d sb o d sb o d sb o b o )
+endfm
+
+view Method from TRIV to PAOL-METHOD is
+  sort Elt to Method .
+endv
+***(
+fmod INTERFACE is
+protecting PRIV_DATA .
+protecting PAOL-METHOD .
+protecting PAOL-CLASS .
+protecting STM-LIST .
+protecting PAOL-IID .
+sort Interface .
+op IF : IID MMtd -> Interface [ctor] .
+endfm
+
+view Interface from TRIV to INTERFACE is
+  sort Elt to Interface .
+endv)
+
+
+fmod PAOL-CLASS is
+  protecting STM-LIST .
+  protecting PAOL-CID .
+  protecting SET{Method} * (sort Set{Method} to MMtd,
+                            op empty : -> Set{Method} to noMethod) .
+  protecting SET{String} * (sort Set{String} to StringSet) .
+
+
+
+  var C : Cid .
+  var MM : MMtd .
+  var AL : VarList .
+  ****vars L S S1 : Subst .
+  vars F F' : Nat .
+  var E : Entity .
+  sorts   Class .
+
+  --- Class declaration.
+      ***op <_: Cl | Par:_, Att:_, MMtd:_, Ocnt:_, INF:_ , Ent:_> :
+    ****  Cid VarList Subst MMtd Nat InterfaceList Entity -> Class [ctor] . *** ok until here
+
+      op <_: Cl | Par:_, Attr:_, MMtd:_, Ocnt:_, Ent:_> :
+      Cid vartypeList vartypeList MMtd Nat Entity -> Class [ctor] .
+
+op emptyClass : -> Class .
+***eq emptyClass = < 'noClass : Cl | Par: emp, Att: noSubst, MMtd : MM, Ocnt: 0,  INF: IFList , Ent: E > .
+
+***here i have put MM instead of nomethod
+
+endfm
+
+view Class from TRIV to PAOL-CLASS is
+  sort Elt to Class .
+endv
+
+
+fmod CLASSTABLE is
+  protecting STM-LIST .
+  protecting PAOL-CID .
+  protecting SET{Class} * (sort Set{Class} to ClassTable,
+                            op empty : -> Set{Class} to noClass) .
+
+endfm
+
+
+fmod PAOL-Types is
+  protecting Syntax-Types  .
+  extending PAOL-CLASS .
+  extending PRIV_DATA  .
+  protecting PAOL-DATA-LABEL .
+  pr CONSENT .
+  sorts ObjectTyp FutureType PolicyType  ExUserType DeltaType ObjectType Extendedtype ClassType .
+  subsort UserType < ExUserType .
+  subsort DataType DeltaType < TYPE .
+  subsort ObjectType ExUserType DataType < Extendedtype .
+  subsort ExUserType ObjectType FutureType < DeltaType .
+  subsort ObjectType < ClassType .
+op _<_,_> : Uid SetPl VarList -> ExUserType [ctor]  .
+op C(_) : Cid -> ObjectType [ctor] .
+***op I(_) : IID -> InterfaceType [ctor] .
+op _<_> : Cid Entity -> ObjectType [ctor] .
+op Fut <_> : DataType -> FutureType [ctor] .
+
+
+endfm
+
+***(
+fmod PAOL-IID is
+  protecting QID .
+
+  sort IID .
+  subsort Qid < IID .
+endfm
+
+view IID from TRIV to PAOL-IID is
+  sort Elt to IID .
+endv)
+
+fmod PROGRAM is
+protecting Syntax-Types .
+protecting PAOL-METHOD .
+protecting CLASSTABLE .
+protecting STM-LIST .
+***protecting SET{Interface} * (sort Set{Interface} to InterfaceList,
+                          ***op empty : -> Set{Interface} to noInter) .
+
+var C : Cid .
+var ES : EntitySet .
+var PS : PurposeSet .
+***var IL : InterfaceList .
+var CT : ClassTable .
+var S S' : vartypeList .
+var Pr : VarList .
+***var II : IID .
+var E : Entity .
+var MS : MMtd .
+var N : Nat .
+sort Program mainblock .
+var MB : mainblock .
+
+op main{_,_} : vartypeList StmList -> mainblock .
+op PR : EntitySet PurposeSet ClassTable mainblock -> Program [ctor] .
+
+op _ins_ : Cid ClassTable -> Bool .
+ceq C ins ( < C : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N ,Ent: E > ,CT) = true if  C == C .
+eq C ins CT = false [owise]  .
+
+op classexists : Cid Program -> Bool .
+ceq classexists (C, PR(ES, PS, CT, MB ) ) = true if (C ins CT) == true  .
+eq classexists (C, PR(ES, PS, CT, MB) ) = false [owise] .
+
+
+op classpar  : Cid ClassTable -> vartypeList .
+ceq classpar( C , (< C : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N ,Ent: E > ,CT))  = S if C == C .
+
+***(op _ii_ : IID InterfaceList -> Bool .
+ceq II ii (IF(II, MS), IL) = true if  II == II .
+eq II ii (IF(II, MS), IL) = false [owise] .
+op InterExists : Interface Program -> Bool .
+ceq InterExists ( IF(II, MS), PR(ES, PS, IL, CT, MB ) ) = true if (II ii IL) == true  .
+eq InterExists ( IF(II, MS) , PR(ES, PS, IL, CT, MB ) ) = false [owise] .)
+
+endfm
+
+
+
+
+view DataType from TRIV to PAOL-Types is
+   sort Elt to DataType .
+endv
+
+view DeltaType from TRIV to PAOL-Types is
+   sort Elt to DeltaType .
+endv
+
+fmod Gamma-Environment is
+
+protecting PAOL-Types .
+
+extending MAP{Var, DataType } * (sort Map{Var, DataType} to SGamma,
+                            sort Entry{Var, DataType} to GBinding,
+                            op empty : -> Map{Var,DataType} to noGamma,
+                            op insert : Var DataType Map{Var,DataType} -> Map{Var,DataType} to $insert ) .
+op emp : -> DataType .
+op dom : Var Gamma -> Bool .
+sort Gamma .
+subsort SGamma < Gamma .
+op remove : Var Gamma -> Gamma .
+op range : Var Gamma -> DataType .
+vars V V' : Var .
+var VL : VarList .
+var D : DataType .
+var DL : DataTypeList .
+sort DataTypeList .
+subsort DataType < DataTypeList .
+vars G1 G2 : Gamma .
+op _,_ : DataTypeList DataTypeList -> DataTypeList [ctor ] .
+op _:_ : Gamma Gamma -> Gamma [assoc] .
+eq (G1 : G2)[V] = if $hasMapping(G2, V) then G2[V] else G1[V] fi .
+
+eq dom(V, noGamma) = false .
+eq dom(V, ((V' |-> D), G1)) = if V == V' then true else dom(V, G1) fi .
+eq dom(V, G1 : G2) = dom(V, G1) or dom(V, G2) .
+
+eq remove(V, (G1, V |-> D)) =  G1 .
+eq remove(V, G1) =  G1 [owise] .
+
+op hasMapping : Gamma Var -> Bool .
+eq hasMapping(G2, V) = $hasMapping(G2, V) .
+eq hasMapping(G1 : G2, V) = $hasMapping(G2, V) or hasMapping(G1, V) .
+
+
+eq range(V, (G1, V |-> D)) = D .
+eq range(V, G1) = emp [owise] .
+
+op insert : Var DataType Gamma -> Gamma .
+eq insert(V, D, G2) = $insert(V, D, G2) .
+eq insert(V, D, G1 : G2) = G1 : $insert(V, D, G2) .
+
+*** Replace an existing binding even in the middle of the SSubst stack.
+op update : Var DataType Gamma -> Gamma .
+eq update(V, D, G1 : G2) = if $hasMapping(G2, V) then G1 : $insert(V, D, G2)
+  else update(V, D, G1) : G2 fi .
+ceq update(V, D, G2) = $insert(V, D, G2)
+if $hasMapping(G2, V) .       *** Block if no mapping exists.
+
+
+op _in_ : Var Gamma -> Bool .
+eq V in noGamma = false .
+eq V in (G1, (V' |-> D) ) = (V in G1) or (V == V') .
+
+
+***(--- Create a substitution from a list of identifiers and data values.
+op creategamma : VarList DataTypeList -> SSubst .
+eq creategamma(VL, DL) = $creategamma(noGamma, VL, DL) .
+op $creategamma : SGamma VarList DataTypeList -> SGamma .
+eq $createSubst(S2, noVid, emp) = S2 .
+***eq $createSubst(S2, (V, VL), (D :: DL)) = $createSubst($insert(V, D, S2), VL, DL) .)
+
+
+
+endfm
+
+fmod Delta-Environment is
+protecting PAOL-Types .
+extending MAP{Var, DeltaType } * (sort Map{Var, DeltaType} to Delta,
+                            sort Entry{Var, DeltaType} to DBinding,
+                            op empty : -> Map{Var,DeltaType} to noDelta,
+                            op insert : Var DeltaType Map{Var,DeltaType} -> Map{Var,DeltaType} to $insert ) .
+op emp : -> DeltaType .
+op dom : Var Delta -> Bool .
+op remove : Var Delta -> Delta .
+op range : Var Delta -> DeltaType .
+
+subsort DBinding < Delta .
+vars V V1 : Var .
+var VL : VarList .
+vars D1 D2 : Delta .
+var Dt : DeltaType .
+
+op _:_ : Delta Delta -> Delta [ctor assoc] .
+eq (D1 : D2)[V] = if $hasMapping(D2, V) then D2[V] else D1[V] fi .
+
+eq dom(V, noDelta) = false .
+eq dom(V, ((V1 |-> Dt), D1)) = if V == V1 then true else dom(V, D1) fi .
+eq dom(V, D1 : D2) = dom(V, D1) or dom(V, D2) .
+
+eq remove(V, (D1, V |-> Dt)) =  D1 .
+eq remove(V, D1) =  D1 [owise] .
+
+eq range(V, (D1, V |-> Dt)) = Dt .
+eq range(V, D1) = emp [owise] .
+
+op hasMapping : Delta Var -> Bool .
+eq hasMapping(D2, V) = $hasMapping(D2, V) .
+eq hasMapping(D1 : D2, V) = $hasMapping(D2, V) or hasMapping(D1, V) .
+
+op insert : Var DeltaType Delta -> Delta .
+eq insert(V, Dt, D2) = $insert(V, Dt, D2) .
+eq insert(V, Dt, D1 : D2) = D1 : $insert(V, Dt, D2) .
+
+op _in_ : Var Delta -> Bool .
+eq V in noDelta = false .
+eq V in (D1, (V1 |-> Dt) ) = (V in D1) or (V == V1) .
+
+*** Replace an existing binding even in the middle of the SSubst stack.
+op update : Var DeltaType Delta -> Delta .
+eq update(V, Dt, D1 : D2) = if $hasMapping(D2, V) then D1 : $insert(V, Dt, D2)
+  else update(V, Dt, D1) : D2 fi .
+ceq update(V, Dt, D2) = $insert(V, Dt, D2)
+if $hasMapping(D2, V) .       *** Block if no mapping exists.
+
+endfm
+
+mod EXPR-TYPE-Rules is
+protecting PROGRAM .
+protecting Gamma-Environment .
+protecting Delta-Environment .
+
+sorts Nonderivable Derivable Judgement  .
+
+sort Context .
+subsort Gamma Delta < Context .
+
+vars D1 D2 : Delta .
+vars G1 G2 : Gamma .
+vars E1 E2 : Expr .
+vars neEL neEl1 : NeExprList .
+vars EL EL1 : ExprList .
+vars V V1 : Value .
+var A : Alpha .
+vars Vr Vr1 : Var .
+vars VL VL1 : VarList .
+vars T T1 T2 T3 T4 : TYPE .
+vars T' T'' : BasicType .
+var C : Context .
+var UD : Uid .
+var US : UidSet .
+var PP : PurposeSet .
+var t t' : Tags .
+sort OP .
+var PS : SetPl .
+var O : Oid .
+var I : Int .
+var N : Nat .
+var B  : Bool .
+var DT : DataType .
+vars L1 L2 : Lambda .
+sort Constraint ConstraintSet .
+subsort Constraint < ConstraintSet .
+var C1 C1' : Constraint .
+var CID : Cid .
+vars eta eta' : Entity .
+var PDT : PDType .
+var NPDT : NPDType .
+var BT : BasicType .
+var lb lb1 : Label .
+var P : Policy .
+var S S' : vartype .
+var MB : mainblock .
+
+
+ops add sub mul : -> OP .
+
+
+op _,_|_ : Gamma Delta Constraint -> Judgement .
+op _:_:_ : Expr OP Expr  -> Expr .
+op _,_|- _:_ : Gamma Delta Expr TYPE -> Judgement .
+op _,_|- _ : Gamma Delta AlphatypeList -> Judgement .
+op _,_|- _|_ : Gamma Delta StmList Constraint -> Judgement .
+op _,_,_|- _|_ : Program Gamma Delta StmList Constraint -> Judgement .
+***op _|- _:_ : Context Expr TYPE -> Judgement .
+
+
+
+***(
+op unionV : VarList VarList -> VarList .
+eq unionV (VL, VL1) = (VL, VL1) .
+
+op _.._ : Lambda Lambda -> Lambda .
+eq (VL,t)..(VL1,t') = (unionV (VL, VL1), t opls t') .)
+
+***op isprivate(_) : Value -> Bool .
+***ceq isprivateVal( V ^ tags( US , PP )) = true if US =/= empty . *** check the empty is overlapping with other things we have
+***eq isprivateVal( V ^ tags( US , PP )) = false [owise] .
+
+op typeof(_) : Value -> BasicType .
+
+op nil :  -> TYPEList [ctor] .
+
+op headof : TYPEList -> TYPE .
+eq headof(T TL ) = T .
+
+op tailof : TYPEList -> TYPEList .
+eq tailof( T TL) = TL .
+
+op sizeof : TYPEList  -> Nat .
+eq sizeof(TL) = $sizeof( TL, 0) .
+
+op $sizeof : TYPEList Nat -> Nat .
+eq $sizeof( nil , N) = N .
+eq $sizeof( (T TL), N) =  $sizeof( TL , N + 1 ) .
+
+
+subsort Nonderivable Derivable < Judgement .
+subsort DataType DeltaType < TYPE .
+
+cmb (((Vr |-> DT), G1) |- Vr : DT) : Derivable if (Vr in G1) /\ range(Vr, G1) == DT .
+cmb (((Vr |-> DT), G1) |- Vr : DT) : Nonderivable if not (Vr in G1) /\ range(Vr, G1) == emp .
+
+***[T-val]
+cmb ( G1 , D1 |- V : T) : Derivable if typeof(V) == T .
+
+
+***[T-var]
+cmb ( G1 , D1 |- Vr : T) : Derivable
+if (G1 |- Vr : T) : Derivable  /\  (D1 |- Vr : T) : Nonderivable  .
+cmb ( G1 , D1 |- Vr : T) : Derivable
+if (G1 |- Vr : T) : Nonderivable /\  (D1 |- Vr : T) : Derivable  .
+
+***[T-field]
+cmb ( G1 , D1 |- this(Vr) : T) : Derivable
+if (G1 |- this(Vr) : T ) : Nonderivable  /\  (D1 |- this(Vr) : T) : Derivable  .
+cmb ( G1 , D1 |- Vr : T) : Derivable
+if (G1 |- this(Vr) : T ) : Derivable /\  (D1 |- this(Vr) : T ) : Nonderivable  .
+
+***[T-this]
+cmb ( G1 , (D1 : ( this |-> T )) |- this : T) : Derivable
+if (G1 |- this : T) : Nonderivable /\ (D1 |- this : T) : Derivable  .
+
+
+***[T-op-add]
+cmb ( G1 , D1  |- E1 : add : E2  : T ^ [L1 . L2] ) : Derivable
+if (D1 |- E1 : T ^ [L1]) : Derivable /\ (D1 |- E2 : T ^ [L2] ) : Derivable  .
+
+***[T-op-sub]
+cmb ( G1 , D1  |- E1 : sub : E2  : T ^ [L1 . L2] ) : Derivable
+if (D1 |- E1 : T ^ [L1] ) : Derivable /\ (D1 |- E2 : T ^ [L2] ) : Derivable  .
+
+***[T-op-mul]
+cmb ( G1 , D1  |- E1 : mul : E2  : T ^ [L1 . L2] ) : Derivable
+if (D1 |- E1 : T ^ [L1] ) : Derivable /\ (D1 |- E2 : T ^ [L2]) : Derivable  .
+
+***[T-E-Tag]
+
+cmb ( G1 , D1  |- E1 tag tags(US, PP) : T ^ [L1 . ( empvar , tags(US, PP) )] ) : Derivable
+if (D1 |- E1 : T ^ [L1] ) : Derivable  .
+*** here x in set x clause is still not implemented
+
+*** T- Exprlist
+cmb ( G1 , D1  |- ((A ;; T) , Al ) ) : Derivable
+if ( G1 , D1  |- A : T ) : Derivable /\ ( G1 , D1  |- Al ) : Derivable .
+
+
+
+op CmpTy(_,_) : TYPE TYPE -> Bool .
+ceq CmpTy((T' ^ [L1]), (T'' ^ [L2]) ) = true if L2 == empL or L1 =/= empL .
+eq CmpTy(T' ^ [L1], T'' ^ [L2] ) = false [owise] .
+ceq CmpTy(U(UD), UD < PS,VL > ) = true if UD == UD .
+eq CmpTy(U(UD), UD < PS,VL > )  = false [owise] .
+
+***(var Prgm : Program .
+op CmpTyp (_,_,_) : IID Cid Program -> Bool .
+ceq CmpTyp( IF(II, MM) , < CID : Cl | Par: L' , Attr: L , MMtd: MM , Ocnt: F , Ent: E >, Prgm ) = true
+if IF(II, MM) in IFlist /\ InterExists (IF(II, MM) , Prgm) == true .
+eq CmpTyp( IF( II, MM ) , < CID : Cl | Par: L' , Attr: L , MMtd: MM , Ocnt: F, INF: IFlist , Ent: E  > , Prgm ) = false [owise] .
+
+op CmpTyp (_,_,_) : Interface Class Program -> Bool .
+ceq CmpTyp( IF(II, MM) , < CID : Cl | Par: L' , Attr: L , MMtd: MM , Ocnt: F, INF: IFlist , Ent: E >, Prgm ) = true
+if IF(II, MM) in IFlist /\ InterExists (IF(II, MM) , Prgm) == true .
+eq CmpTyp( IF( II, MM ) , < CID : Cl | Par: L' , Attr: L , MMtd: MM , Ocnt: F, INF: IFlist , Ent: E  > , Prgm ) = false [owise] .)
+
+
+var TL TL' : TYPEList .
+op CmpTyp(_,_) : TYPEList TYPEList -> Bool .
+ceq CmpTyp ((T TL), (T1 TL')) = true if CmpTyp( T, T1 ) == true
+ /\ CmpTyp( TL, TL' ) == true /\ sizeof((T TL)) == sizeof((T1 TL')) .
+eq CmpTyp ((T TL), (T1 TL'))  = false [owise] .
+
+
+var MM : MMtd .
+vars L L'  : vartypeList .
+vars F F' : Nat .
+***var II : IID .
+***var IFlist : InterfaceList .
+var E : Entity .
+var ES : EntitySet . var CT : ClassTable . var MS : MMtd . var PrS : PurposeSet .
+var M : Mid . var Mtd : method .
+var ct : ClassType .
+var St : Stm .
+var SL SL' : StmList .
+var Prgm : Program .
+
+
+sort InstConstraint ActConstraint .
+subsort InstConstraint ActConstraint < Constraint .
+op InCnstr(_,_) : Lambda Delta -> Constraint [ctor] .
+op InCnstrThis(_,_) : Lambda Delta -> Constraint [ctor] .
+op Cnstr(_,_,_) : ActionSet Lambda Delta -> Constraint [ctor] .
+op CnstrThis(_,_,_) : ActionSet Lambda Delta -> Constraint [ctor] .
+
+subsort Constraint < ConstraintSet .
+op _ _ : ConstraintSet ConstraintSet -> ConstraintSet [ctor assoc comm ] .
+var CnS CnS' : ConstraintSet .
+op unionCnstr : ConstraintSet ConstraintSet -> ConstraintSet  .
+eq unionCnstr (CnS, CnS') = CnS CnS' .
+
+
+op unionVar : VarList VarList -> VarList [ctor] .
+eq unionVar(VL,VL1) = VL ,, VL1 .
+
+
+op deleteVar : Var VarList -> VarList .
+eq deleteVar(Vr, ( Vr ,, VL)) = deleteVar(Vr, VL) .
+eq deleteVar(Vr, VL) = VL [owise] .
+
+
+op Typecheck(_,_,_,_,_) : Program Gamma Delta StmList Constraint ->  Judgement [ctor] .
+
+***Skip
+eq Typecheck(Prgm , G1, D1, skip ; SL , C1 ) = Typecheck( Prgm , G1, D1, SL , C1 ) .
+
+***T-ASSGN LOCAL
+ceq Typecheck(Prgm , ((Vr |-> T' ^ [ L1 ] ),G1) , D1, assign( Vr ; (E1 : T'' ^ [ L2 ])) ; SL , C1 ) =
+Typecheck( Prgm , ((Vr |-> T'' ^ [ L2 ] ),G1) , D1, SL , unionCnstr ( C1, InCnstr( L1 , D1)  Cnstr((Use, Collect), L1, D1) ) )
+if ( G1 , D1 |- E1 : T'' ^ [ L2 ] ) : Derivable /\  CmpTy((T' ^ [L1]), (T'' ^ [L2])) == true /\ L1 =/= empL .
+
+***T-ASSGN FIELD
+ceq Typecheck(Prgm , ((this(Vr) |-> T' ^ [ L1 ] ),G1) , D1, assign( this(Vr) ; (E1 : T'' ^ [ L2 ])) ; SL , C1 ) =
+Typecheck(Prgm , ((this(Vr) |-> T' ^ [ L1 ] ),G1) , D1,  SL , unionCnstr ( C1, InCnstr( L1 , D1) InCnstrThis( L1, D1) Cnstr(Use , L1, D1) CnstrThis((Collect, Store), L1, D1)  )  )
+if ( G1 , D1 |- E1 : T'' ^ [ L2 ] ) : Derivable /\  CmpTy((T' ^ [L1]), (T'' ^ [L2])) == true /\ L1 =/= empL .
+
+***T-NEWUSER
+eq Typecheck(Prgm , (this |-> T , G1) , ( Vr |-> U(UD), D1) , Vr := NewUser ; SL , C1 ) =
+Typecheck(Prgm , (this |-> T , G1)  , ( Vr |-> UD < emppl , this > , D1) , SL , C1 ) .
+***here the object needs to be in env this should be mapped to current object
+
+***T-readFut
+ceq Typecheck(Prgm , (Vr |-> T ^ [ L1 ] , G1 ) , (D1 , Vr1 |-> Fut < T ^ [ L2 ] > ) , get( Vr ; lb ) ; SL , C1 ) =
+Typecheck(Prgm , (Vr |-> T ^ [ L1 ] , G1 ) , (D1 , Vr1 |-> Fut < T ^ [ L2 ] > ) , SL , unionCnstr ( C1, InCnstr( L1 , D1)  Cnstr(Use , L1, D1) )  )
+if CmpTy((T ^ [L1]), (T ^ [L2])) == true .
+
+
+op ClsFld : Cid Program -> vartypeList .
+ceq ClsFld( CID, PR(ES, PrS, (< CID : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N ,Ent: E > ,CT), MB )) = S if  classexists (CID, PR(ES, PrS, CT, MB ) ) == true .
+***ceq ClsFld( CID, PR(ES, PS, (< CID : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N ,Ent: E > ,CT), MB ) = emp [owise]. *** add empty clause
+
+op typelist : vartypeList -> TYPEList .
+eq typelist ( (Vr :: T),L  ) = T typelist (L) .
+ceq typelist ((Vr :: T),L ) = T if L == emptyList .
+
+op typelist : AlphatypeList -> TYPEList .
+eq typelist ( (A ;; T),Al  ) = T typelist (Al) .
+ceq typelist ((A ;; T),Al ) = T if  Al == emptyList .
+
+
+***op nonprivate? : AlphaList -> Bool .
+***ceq nonprivate?(( A ;; (T' ^ [L1] )) , Al ) = true if [L1] == empL /\  nonprivate? (Al) == true .
+
+
+var Al : AlphatypeList .
+***T newobject
+ceq Typecheck(PR(ES, PrS, CT, MB ) , ((Vr |-> C(CID) ),G1) , D1, new( Vr ;  CID ; Al ; E ) ; SL , C1 ) =
+Typecheck(PR(ES, PrS, CT, MB ) , ((Vr |-> CID < E >  ),G1) , D1,  SL , C1 )
+if ( G1 , D1 |- Al ) : Derivable /\  CmpTy( typelist(ClsFld(CID,PR(ES, PrS, CT, MB ) )), typelist( Al )) == true /\ classexists (CID, PR(ES, PrS, CT, MB ) ) == true .  ***/\ nonprivate?(Al) == true .
+*** two more conditions on aliasing and private expression
+
+***T cond
+***TBD
+var CT' : ObjectType .
+
+
+***T-Async asyncall
+
+ceq Typecheck(PR(ES, PrS, ( < CID : Cl | Par: S , Attr: S' , MMtd: ( < M : Method | ReturnType : T , Param: L , Annotation: L1 ,Latt: L', Code: SL' > , MS) ,Ocnt: N ,Ent: E > , CT), MB ) , G1 , (D1, (Vr |-> CT' )) , asyncall( ( Vr1 :: Fut < T ^ [L1] > ) ; Vr ; M ; Al ) ; SL , C1 )
+= Typecheck(PR(ES, PrS, CT, MB ) , G1 , (D1,  (Vr |-> CT' ) , (Vr1 |-> Fut < (T ^ [L1]) > ) ),  SL , C1 )
+if ( G1 , D1 |- Al ) : Derivable /\ < M : Method | ReturnType : T , Param: L , Annotation: L1 ,Latt: L', Code: SL' >  OKin < CID : Cl | Par: S , Attr: S' , MMtd: ( < M : Method | ReturnType : T , Param: L , Annotation: L1 ,Latt: L', Code: SL' > , MS) , Ocnt: N ,Ent: E >
+ /\ CmpTy( typelist(ClsFld(CID,PR(ES, PrS, CT, MB ) )), typelist( Al )) == true . ***/\ CmpTy( T , (T ^ [L1]) ) == true .
+
+*** add method ok i c clausen
+*** cmptyp for future type with called method return type
+***lambda' needs to be fixed
+
+**** Remove and substitute function
+
+op composition : Lambda Lambda -> Lambda .
+eq composition( empL , L1 ) = L1 .
+eq composition( L1 ,  empL ) = L1 .
+eq composition(( VL, t) , (VL1, t') ) = (unionVar(VL,VL1), (t opls t')) .
+
+op Remove : Lambda Var -> Lambda .
+eq Remove((VL, t), Vr ) = (deleteVar(Vr, VL ), t) .
+eq Remove(empL , Vr ) = empL .
+
+op S : Lambda Lambda Var -> Lambda .
+ceq S( L1 , L2 , Vr ) = composition (L1, L2) if not (Remove(L1 , Vr ) == L1 ) .
+eq S( L1 , L2 , Vr ) = L1 [owise] .
+
+***T-End
+sort Environment .
+
+***initial environment functions
+op Env(_;_) : Gamma Delta -> Environment .
+
+op TEloc : vartypeList Gamma Delta -> Environment .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T ==  .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T ==  .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T ==  .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T ==  .
+
+op TEpar : vartypeList -> Environment .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+
+op TEfld : vartypeList -> Environment .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+ceq TEloc(((Vr :: T), L), G1 , D1 ) = Env(_;_) if T == .
+
+sort MtdConstraint .
+
+
+op MtdCons : Method ConstraintSet -> MtdConstraint .
+
+
+
+***well typed METHOD
+op GenConstraint : Method Program Gamma Delta -> MtdConstraint .
+eq GenConstraint(< M : Method | ReturnType : T , Param: L , Annotation: L1 ,Latt: L', Code: SL' > ,
+PR(ES, PrS, CT, MB ), G1 , D1 ) =  constraint( Typecheck(PR(ES, PrS, CT, MB ), G1 , D1 , SL , C1 ) ) .
+
+
+
+op _OKin_ : Method  Class -> Bool .
+
+
+
+
+***(op empfield : -> vartypeList .
+op Field(_,_) : Cid Program -> vartypeList .
+ceq Field (CID, PR(ES, PrS, IL,  (< CID : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N , INF: IL ,Ent: E > ,CT) , MB) ) = S' if CID == CID .
+eq Field (CID, PR(ES, PrS, IL,  (< CID : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N , INF: IL ,Ent: E > ,CT) , MB) ) = empfield [owise] .
+
+
+op ou-lcl : vartypeList -> Delta .
+
+***eq ou-lcl()
+op dt-lcl  : vartypeList -> Gamma .
+
+op ou : vartypeList -> Delta .
+op dt : vartypeList -> Gamma .
+
+****well typed class.
+)
+
+***T Return
+
+
+***check this agian something is not working.
+***TYPE rules for CONSENT
+
+***T-ADDCON does not generate any constraints
+***eq Typecheck(Prgm , G1 , (D1 , Vr |-> UD < PS , VL >) , Vr .addCon (P); SL , C1 ) = Typecheck(Prgm , G1  , (D1 , Vr |-> UD < union(PS, P) , VL > ) , SL , C1 ) .
+***(
+***T-RMVCON does not generate any constraints
+eq Typecheck(Prgm , G1 , (D1 , Vr |-> UD < PS , VL >) , Vr .addCon(P) ; SL , C1 ) =
+Typecheck(Prgm , G1  , (D1 , Vr |-> UD < union(PS, P) , VL > ) , SL , C1 ) .
+
+***T-ADDINST does not generate any constraints
+eq Typecheck(Prgm , G1 , (D1 , Vr |-> UD < PS , VL >) , Vr .addCon(P) ; SL , C1 ) =
+Typecheck(Prgm , G1  , (D1 , Vr |-> UD < union(PS, P) , VL > ) , SL , C1 ) .
+
+***T-ADDINST does not generate any constraints
+eq Typecheck(Prgm , G1 , (D1 , Vr |-> UD < PS , VL >) , Vr .addCon(P) ; SL , C1 ) =
+Typecheck(Prgm , G1  , (D1 , Vr |-> UD < union(PS, P) , VL > ) , SL , C1 ) .)
+
+***here add the side clause
+
+
+
+
+endm
+
+
+
+
+
+
+
+
+****Typing rules for STATEMENTS
+***(
+***T-SKIP
+rl ( G1 , D1 |- skip | C1 )  => ( G1 , D1 | C1 ) [label T-Skip] .
+
+***T-ASSGN LOCAL
+crl ( ((Vr |-> T' ^ [ L1 ] ),G1) , D1 |- assign( Vr ; (E1 : T'' ^ [ L2 ])) | C1 )  => ( ((Vr |-> T'' ^ [ L2 ] ),G1) , D1 |
+unionCnstr ( C1, InCnstr( L1 , D1)  Cnstr((Use, Collect), L1, D1) ))
+if ( G1 , D1 |- E1 : T'' ^ [ L2 ] ) : Derivable /\  CmpTy((T' ^ [L1]), (T'' ^ [L2])) == true /\ L1 =/= empL  [label T-assignlocal] .
+***here the alpha we assign we have to give the type as well which is weird but I need to see how to fix this later
+
+***T-ASSGN FIELD
+crl ( ((this(Vr) |-> T' ^ [ L1 ] ),G1) , D1 |- assign( this(Vr) ; (E1 : T'' ^ [ L2 ])) | C1 )  => ( ((Vr |-> T'' ^ [ L2 ] ),G1) , D1 |
+unionCnstr ( C1, InCnstr( L1 , D1) InCnstrThis( L1, D1) Cnstr(Use , L1, D1) CnstrThis((Collect, Store), L1, D1)  )  )
+if ( G1 , D1 |- E1 : T'' ^ [ L2 ] ) : Derivable /\  CmpTy((T' ^ [L1]), (T'' ^ [L2])) == true /\ L1 =/= empL  [label T-assignfield] .
+
+***T-NEWUSER
+rl  ((this |-> T , G1) , ( Vr |-> U(UD), D1) |- Vr := NewUser | C1 )
+=>
+( ( this |-> T , G1) , ( Vr |-> UD < emppl , this > , D1)  | C1 ) [label T-NewUser] .
+***problem here is this is a varibale but it should be an instnace of object somehow mapping should be done
+
+***newOBJ
+
+crl ( PR(ES, PS, CT, MB) , G1 , (Vr |-> I(II) , D1) |- new(Vr; CID; EL; eta) | C1 )
+=> ( G1 , (Vr |-> CID(eta), D1) | C1 )
+if classexists ( CID , PR(ES, PS, IL, CT, MB) ) == true /\ CmpTyp (II, CID) == true
+/\ CmpTyp ( classpar(CID) , Typesof(EL) ) .
+
+***T-getfuture
+crl  ( (Vr |-> T ^ [ L1 ] , G1 ) , (D1 , Vr1 |-> lb < T ^ [ L2 ] > )  |- get( Vr ; lb )  | C1 )  =>
+ ((Vr |-> T ^ [ L1 ] , G1 ) , (D1 , Vr1 |-> lb < T ^ [ L2 ] > )
+| unionCnstr ( C1, InCnstr( L1 , D1)  Cnstr(Use , L1, D1) ) ) if CmpTy((T ^ [L1]), (T ^ [L2])) == true  [label T-Getfuture] .
+
+
+*** asynccall
+rl ( PR(ES, PS, IL, CT, MB) , G1 , (Vr' |-> ct , D1) |- asyncall( lb < DT > ; Vr ; Vr' ; M ; EL )  | C1 )
+=> ( G1 , insert ( Vr , lb < DT > , (Vr' |-> ct, D1)) | C1 ) .
+
+***if classexists ( CID , PR(ES, PS, IL, CT, MB) ) == true /\ CmpTyp (II, CID) == true
+***/\ CmpTyp ( classpar(CID) , Typesof(EL) )
+
+****consent Typing rules
+
+***T-AddCon
+rl  (  G1 , (D1 , Vr |-> UD < PS , VL > )  |-  Vr .addCon(P) | C1 ) => (  G1 , (D1 , Vr |-> UD < union(PS, P) , VL > ) | C1 ) [label T-AddCon]  .
+
+***T-RemCon
+rl  (  G1 , (D1 , Vr |-> UD < PS , VL > )  |-  Vr .remCon (P) | C1 ) => (  G1 , (D1 , Vr |-> UD < delete(PS, P) , VL > ) | C1 ) [label T-AddCon]  .
+
+***T-AddInst
+rl  (  G1 , (D1 , Vr |-> UD < PS , VL >  )  |-  Vr .addInst (Vr1) | C1 ) => (  G1 , (D1 , Vr |-> UD < PS , unionVar (VL, Vr1) > ) | C1 ) [label T-AddCon]  .
+
+***T-RemInst
+rl  (  G1 , (D1 , Vr |-> UD < PS , VL > )  |-  Vr .remInst (Vr1) | C1 ) => (  G1 , (D1 , Vr |-> UD < PS , deleteVar (VL, Vr1)  > ) | C1 ) [label T-AddCon]  .
+
+
+
+***here add the side clause
+***well typed METHOD
+op empfield : -> vartypeList .
+op Field(_,_) : Cid Program -> vartypeList .
+ceq Field (CID, PR(ES, PrS, IL,  (< CID : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N , INF: IL ,Ent: E > ,CT) , MB) ) = S' if CID == CID .
+eq Field (CID, PR(ES, PrS, IL,  (< CID : Cl | Par: S , Attr: S' , MMtd: MS , Ocnt: N , INF: IL ,Ent: E > ,CT) , MB) ) = empfield [owise] .
+
+
+op ou-lcl : vartypeList -> Delta .
+
+***eq ou-lcl()
+op dt-lcl  : vartypeList -> Gamma .
+
+op ou : vartypeList -> Delta .
+op dt : vartypeList -> Gamma .
+
+****well typed class.
+
+
+
+
+***T-method
+)
