@@ -1,7 +1,7 @@
 # TyPAOLExecutable 
 
-- Introduction
-*  Prerequisites
+> Introduction
+>  Prerequisites
 + TypeChecker in Maude
 - Interpreter in Maude
 * Test Programs in Maude
