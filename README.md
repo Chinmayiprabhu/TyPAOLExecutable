@@ -13,7 +13,7 @@
   -  sudo ./maude-Yices2.darwin64
   -  load ./Typechecker.maude
   -  load ./test1.maude
-  -  load ./Interpreter.maude
+  -  load ./langInterpreter.maude
 - Ongoing Work
     -This work is ongoing, we are still trying to conduct robust analysis out of the typechecker to prove some properties, make larger test cases and report on the same. 
 
