@@ -1,7 +1,7 @@
 # TyPAOLExecutable 
 
 - Introduction
-  This repository contains the proof of concept implementation of the work presented in  " A Type System for Data {rivacy COmpliance in Active Object Languages" 
+  This repository contains the proof of concept implementation of the work presented in  " A Type System for Data privacy Compliance in Active Object Languages" 
 *  Prerequisites
   To run and test the code, the rewriting tool [a link] (https://maude.cs.illinois.edu/w/index.php/Maude_download_and_installation)] is needed. It's downloadable free of charge from 
   the University of Illinois. See the documentation there for installation instructions and further information.
