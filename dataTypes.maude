@@ -1,0 +1,119 @@
+fmod DATA is
+  pr QID .
+  pr STRING .
+  pr INT .
+  pr NAT .
+  pr FLOAT .
+
+***defining types from the paper here
+sorts Gtype Dtype Utype Ctype Btype PDtype Rtype Etype Ftype .
+subsort Btype < Dtype .
+subsort PDtype < Dtype .
+subsorts Utype Ctype < Rtype .
+subsorts Dtype Rtype < Etype . ---Extended typed including Dtype and Rtype
+subsort Etype < Gtype .
+subsort Ftype < Gtype .
+
+
+sorts Uid Data Oid Expr Alpha NonPrivData PrivData MsgId Vid Policy Purpose Entity Action .
+*** subsort Uid < Utype . not sure of this
+
+***defining alpha and expressions here from the syntax
+subsort NonPrivData  < Data .
+subsort PrivData < Data .
+subsort Oid MsgId   < NonPrivData .
+subsort Expr < Data .
+subsort Qid < Vid < Expr .
+subsort Expr < Alpha .
+***subsort Policy < NonPrivData .
+
+sort Annotation .
+
+
+
+op undefinedTyp : -> Gtype [ctor] .
+sorts  ExprList DataList Tags NeTagsList TagsList VidList NeExprList NeDataList OidSet Val TaggedVal TaggedExpr .
+sorts EmpList .
+subsort EmpList < DataList VidList .
+subsort Vid < VidList < ExprList .
+subsort Oid < OidSet .
+subsort Val TaggedVal < Expr .
+subsort TaggedExpr Expr < Alpha .
+subsort TaggedVal TaggedExpr < PrivData .
+subsort Tags < NeTagsList < TagsList .
+subsort Expr < NeExprList < ExprList .
+subsort Data < NeDataList < DataList .
+subsort ExprList < DataList .
+subsort NeExprList < NeDataList .
+op noent : -> Entity .
+op emp : -> EmpList [ctor] .
+op _,,_ : ExprList ExprList -> ExprList [ctor assoc id: emp prec 27 format (d r os d d)] .
+op _,,_ : EmpList  EmpList   -> EmpList [ctor ditto] .
+op _,,_ : NeExprList ExprList -> ExprList [ctor ditto].
+op _,,_ : ExprList NeExprList -> ExprList [ctor ditto].
+op _,,_ : NeDataList DataList -> DataList [ctor ditto] .
+op _,,_ : DataList NeDataList -> DataList [ctor ditto] .
+op _,,_ : DataList DataList -> DataList [ctor ditto ] .
+*** Variable references are named by Qids directly.
+*** Instance variable references are decorated:
+
+op @_ : Qid -> Vid [ctor] .
+sorts Param ParamList  NeParamList EmpParList .
+subsort Param < ParamList .
+
+op _tag_  : Expr Tags -> Data .
+
+op _:_ : Gtype Expr -> Param  [ctor] .
+op empP :  -> EmpParList [ctor] .
+op _.._ : ParamList ParamList -> ParamList [ctor ]  . *** dont have the format
+op _.._ : NeParamList ParamList -> ParamList [ctor ] . *** should add format and constructor
+op _.._ : ParamList NeParamList -> ParamList [ctor ] .
+op nothing : -> NonPrivData [ctor] .
+op user : Qid -> Uid [ctor] .
+***op Purpose : Qid -> Purpose [ctor] .
+***op noUser : -> NonPrivData [ctor] .
+
+***op _(_) : Qid DataList -> Data . *** function application
+op _[_] : String ExprList -> Expr [ctor prec 12 format (! o d d d)] .
+op _[_] : String DataList -> Data [ctor prec 12 format (! o d d d)] .
+***converstion of data types into sort DATA
+
+op null : -> NonPrivData [ctor] .
+op obj :  Qid -> Oid [ctor] .
+op usr : Nat -> Uid  [ctor] .
+op n : Nat Oid -> MsgId [ctor] . *** what is this?
+***op int(_)  : Int       -> NonPrivData [ctor format(o o ! o o)] .
+op float(_) : Float    -> NonPrivData [ctor format(o o ! o o)] .
+op str(_)  : String    -> NonPrivData [ctor format(o o ! o o)] .
+***op bool(_) : Bool      -> NonPrivData [ctor format(o o ! o o)] .
+op isnothing : DataList -> Bool .
+
+***guard expression
+op ?(_)  : Expr -> Expr [ctor format (! o d d d)] .
+***op $error : String -> Expr [ctor format (r o)] .
+
+***( Reconversion for evaluation
+op _asInt             : Data -> Int .
+eq int(I)  asInt      = I .
+op _asNat             : Data -> Nat .
+eq int(N)  asNat      = N .
+op _asBool            : Data -> Bool .
+eq bool(B) asBool     = B .
+op _asStr             : Data -> String .
+eq str(S)  asStr      = S .)
+
+*** Reconversion for evaluation
+op _asPaolBool     : Bool -> Data .
+***eq true asPaolBool  = true .
+
+var N : Nat .    var I : Int .
+var B : Bool .   vars S  S' : String . vars Q Q' : Qid .
+var O : Oid .
+
+var DL : DataList .
+vars D D'     : Data .
+vars E E'     : Expr .
+vars L L' L'' : ExprList .
+op _[_] : String ExprList -> Expr [ctor prec 12 format (! o d d d)] .
+op _[_] : String DataList -> Data [ctor prec 12 format (! o d d d)] .
+endfm

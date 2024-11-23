@@ -1,0 +1,592 @@
+load dataTypes
+
+view Vid from TRIV to DATA is
+   sort Elt to Vid .
+endv
+
+view Data from TRIV to DATA is
+   sort Elt to Data .
+endv
+
+view Expr from TRIV to DATA is
+   sort Elt to Expr .
+endv
+
+view Uid from TRIV to DATA is
+   sort Elt to Uid .
+endv
+
+view Utype from TRIV to DATA is
+   sort Elt to Utype .
+endv
+
+view Ctype from TRIV to DATA is
+   sort Elt to Ctype .
+endv
+
+view Gtype from TRIV to DATA is
+   sort Elt to Gtype .
+endv
+
+view Entity from TRIV to DATA is
+  sort Elt to Entity .
+endv
+
+
+view Purpose from TRIV to DATA is
+  sort Elt to Purpose .
+endv
+
+
+view Action from TRIV to DATA is
+  sort Elt to Action .
+endv
+
+view Policy from TRIV to DATA is
+  sort Elt to Policy .
+endv
+
+view Tags from TRIV to DATA is
+  sort Elt to Tags .
+endv
+
+view Alpha from TRIV to DATA is
+   sort Elt to Alpha .
+endv
+
+view Param from TRIV to DATA is
+  sort Elt to Param .
+endv
+
+
+fmod GTYPE-SET is
+protecting DATA .
+protecting SET{Gtype} * (sort NeSet{Gtype} to NeGtypeSet,
+                         sort Set{Gtype} to GtypeSet) .
+  subsort Gtype < NeGtypeSet < GtypeSet .
+
+endfm
+
+
+fmod UID-SET is
+protecting DATA .
+protecting SET{Uid} * (sort NeSet{Uid} to NeUidSet,
+                         sort Set{Uid} to UidSet) .
+  subsort Uid < NeUidSet < UidSet .
+
+endfm
+fmod PURPOSE-SET is
+  protecting DATA .
+  protecting SET{Purpose} * (sort NeSet{Purpose} to NePurposeSet,
+                         sort Set{Purpose} to PurposeSet) .
+
+subsort Purpose < NePurposeSet < PurposeSet .
+
+endfm
+
+
+fmod Annotated-Type is
+protecting DATA .
+protecting PURPOSE-SET .
+protecting UID-SET .
+
+op tg : UidSet PurposeSet  -> Tags .
+op emptyAnnotation : -> Annotation .
+subsort Tags < Annotation .
+ops Int Bool : -> Btype .
+op _^_ : Btype Annotation -> Dtype .
+
+endfm
+
+
+
+
+fmod ACTION-SET is
+  protecting DATA .
+  protecting SET{Action} * (sort NeSet{Action} to NeActionSet,
+                         sort Set{Action} to ActionSet) .
+  subsort Action < NeActionSet < ActionSet .
+  ops use collect store transfer : -> Action .
+endfm
+
+fmod ENTITY-SET is
+  protecting DATA .
+  protecting SET{Entity} * (sort NeSet{Entity} to NeEntitySet,
+                         sort Set{Entity} to EntitySet) .
+  subsort Entity < NeEntitySet < EntitySet .
+
+endfm
+
+
+
+fmod TAGS-SET is
+protecting DATA .
+protecting SET{Tags} * (sort NeSet{Tags} to NeTagsSet,
+                         sort Set{Tags} to TagsSet,
+                         op empty : ->  Set{Tags} to Emptags ) .
+  subsort Tags < NeTagsSet < TagsSet .
+
+endfm
+
+
+fmod Param-SET is
+protecting DATA .
+protecting SET{Param} * (sort NeSet{Param} to NeParamSet,
+                         sort Set{Param} to ParamSet,
+                         op empty : ->  Set{Param} to EmpParam ) .
+  subsort Param < NeParamSet < ParamSet .
+
+endfm
+
+
+****here it can be either expr or data
+
+fmod T-PAOLENV is
+*** protecting META-LEVEL .
+***protecting DATATYPES .
+extending MAP{Data, Gtype} * (sort Map{Data, Gtype} to ENV,
+                             op empty : -> Map{Data, Gtype} to emptyENV ) .
+
+
+***op noSub : -> Subst .
+*** eq noSub = (empty).Subst .
+
+op typeExist : Data ENV -> Bool .
+op remtyp : Data ENV -> ENV .
+
+*** Non-comm composition operator for substitutions
+op _#_ : ENV ENV -> ENV .
+var D D' : Data . var G G' : Gtype . var E E1 E2 : ENV .
+
+eq E # emptyENV = E .
+eq E # ((D |-> G), E1) = insert(D,G,E) # E1 .
+
+eq typeExist(D, emptyENV) = false .
+***eq typeExist(D, ((D' |-> G), E)) = if D == D' then true else typeExist(D, E) fi .
+eq typeExist(D, E) = $hasMapping(E, D) .
+eq typeExist(D, E # E1) = typeExist(D, E) or typeExist(D, E1) .
+
+eq remtyp(D, (E, D |-> G)) =  E .
+eq remtyp(D, E) =  E [owise] .
+
+op getType : Data ENV -> Gtype .
+eq getType(D,((D |-> G), E1)) = if $hasMapping(E1, D) then undefinedTyp else G fi .
+eq getType(D, E1)  = undefinedTyp [owise] .
+
+endfm
+
+
+fmod PRIV_DATA is
+  pr DATA .
+  pr Annotated-Type .
+  protecting PURPOSE-SET .
+  protecting ACTION-SET .
+  protecting ENTITY-SET .
+  protecting UID-SET .
+  subsort Policy < Data . *** dont do this yet, this is not correct cause policy just exists in configuration
+  ***subsort Tag < Data .
+
+  var U U1  : UidSet .
+  var P P1  : PurposeSet .
+  var E E1 : Expr .
+  var D D1 : Data .
+  var DL : DataList .
+  var t t1 : Tags .
+  vars tL tL1 : TagsList .
+  vars NtL NtL1 : NeTagsList .
+  op notags : -> TagsList [ctor] .
+  ***op _+_ : TagsList TagsList -> TagsList [ctor assoc comm id: notags ] .
+  op _+_ : TagsList TagsList -> TagsList [ctor assoc comm ] .
+  op _+_ : NeTagsList  TagsList -> TagsList [ctor ditto] .
+  op _+_ : TagsList  NeTagsList -> TagsList [ctor ditto] .
+  op _+_ : NeTagsList  NeTagsList -> TagsList [ctor ditto] .
+
+  op (_,_,_) : EntitySet ActionSet PurposeSet  -> Policy [ctor] .
+  ***op tg : UidSet PurposeSet  -> Tags . ***should be vidlist? instead?
+  op TaggedExp(_,_) : Expr Tags -> TaggedExpr .
+  op Users(_) : TagsList -> UidSet .
+  op Purposes(_) : TagsList -> PurposeSet .
+
+***(the reduce output is here
+  reduce in PRIV_DATA : Users(tg (U, P) + tg (U1 , P1) + tg (U2, P2)) .
+  reduce in PRIV_DATA : Users((tg(U1, P1) + tg(U2, P2)) + tg(U, P)) .
+  rewrites: 6 in 0ms cpu (0ms real) (6000000 rewrites/second)
+  result UidSet: U, U1, U2, Users(notags) does not work for one more arg)
+
+  eq Users (tg (U, P) + (tg (U1 , P1) + tL) ) = union ((U, U1) , Users(tL)) .
+  eq Users (tg (U, P) + tL ) = union (U, Users(tL)) .
+  eq Users(tg (U, P) + tg (U1 , P1)) = union(U, U1) .
+  eq Users(tg (U, P))  = U .
+  eq Users( notags) = empty .
+
+
+  eq Purposes (tg (U, P) + (tg (U1 , P1) + tL) ) = intersection ((P, P1) , Purposes(tL)) .
+  eq Purposes (tg (U, P) + tL ) = intersection (P, Purposes(tL)) .
+  eq Purposes(tg (U, P) + tg (U1 , P1))  = union(P, P1) .
+  eq Purposes(tg (U, P))  = P .
+  eq Purposes(notags) = empty .
+
+*** tag combinator
+  op oplus : TagsList  -> Tags .
+  eq oplus (tg (U, P) +  (tg (U1 , P1) + tL) ) = tg ( union((U, U1), Users(tL)) , intersection ((P, P1), Purposes(tL) )) .
+  ceq oplus (tg (U, P) +  tL ) = tg (U, P)  if tL == notags .
+  eq oplus (tg (U, P)) = tg (U, P) .
+
+***not correct check again
+  op getTags : DataList -> TagsList .
+  eq getTags( TaggedExp(E,t),, (TaggedExp(E1, t1),,DL)) = t + t1 + getTags(DL) .
+  eq getTags( TaggedExp(E,t),, DL) = t + getTags(DL) .
+  ceq getTags( TaggedExp(E,t),, DL) = t if DL == emp .
+
+  var NpD NpD' : NonPrivData . var PD PD' : PrivData .
+
+  op _++_ : Data Data -> Data .
+  eq TaggedExp(E,t) ++ E1 = TaggedExp( (E app E1), t) .
+  eq E1 ++ TaggedExp(E,t) = TaggedExp( (E1 app E), t) .
+  eq TaggedExp(E,t) ++ TaggedExp(E1,t1) = TaggedExp( (E app E1), oplus(t + t1)) . ***here chcek app again
+
+  op _app_ : NonPrivData NonPrivData -> NonPrivData [ctor] .
+  op _app_ : PrivData NonPrivData -> PrivData [ctor] .
+  op _app_ : NonPrivData PrivData -> PrivData [ctor] .
+  op _app_ : PrivData PrivData -> PrivData [ctor] .
+
+
+endfm
+
+
+
+***************************************************************************
+***
+*** Signature of programs
+***
+***************************************************************************
+
+*** The sort of a class identifier.
+***
+fmod PAOL-ClassType is
+protecting DATA .
+  protecting QID .
+  subsort Qid < Ctype .
+
+  op Class : -> Ctype [ctor] .
+  op None : -> Ctype [ctor] .
+endfm
+
+view Ctype from TRIV to PAOL-ClassType is
+  sort Elt to Ctype .
+endv
+
+fmod PAOL-OID is
+  protecting PAOL-ClassType .
+  protecting NAT .
+  protecting DATA .
+
+  subsort Oid < Data .
+--- Constructor of object names
+  op ob : Ctype Int -> Oid [ctor] .
+endfm
+
+view Oid from TRIV to PAOL-OID is
+  sort Elt to Oid .
+endv
+
+
+fmod PAOL-Policy is
+protecting DATA .
+protecting PURPOSE-SET .
+protecting ENTITY-SET .
+protecting ACTION-SET .
+
+op Pol : EntitySet ActionSet PurposeSet -> Policy [ctor] .
+
+endfm
+
+view Policy from TRIV to PAOL-Policy is
+  sort Elt to Policy .
+endv
+
+fmod EXtended-UType is
+protecting DATA .
+protecting SET{Policy} * (sort NeSet{Policy} to NeSetPl,
+                            sort Set{Policy} to SetPl,
+                            op empty : -> Set{Method} to noPolicy ) .
+sort EXUtype .
+subsort Utype < EXUtype < Gtype .
+op UT<_,_> : Utype SetPl -> EXUtype [ctor] .
+
+endfm
+
+fmod PAOL-MID is
+  protecting QID .
+
+  sort Mid .
+  subsort Qid < Mid .
+endfm
+
+
+fmod PAOL-STATEMENTS is
+protecting T-PAOLENV .
+pr PAOL-OID .
+protecting PAOL-ClassType .
+protecting PAOL-MID .
+sorts Stm .
+
+op skip : -> Stm [ctor] .
+op assign(_,_;_) : Gtype Vid Data -> Stm [ctor] .
+***op assign(_,_;_) : Gtype VidList DataList -> Stm [ctor] .
+***op assign(_;_) : VidList Stm -> Stm [ctor] .
+op new(_,_;_;_;_) : Gtype Vid Ctype DataList Entity -> Stm [ctor] .
+op _,_:= NewUser : Gtype Vid  -> Stm [ctor] . *** can be created just like future in the configuration
+op get(_,_;_) : Gtype Vid Vid  -> Stm [ctor] .
+***op get(_,_;_) : Gtype Label Vid -> Stm [ctor] .
+op asyncall!(_;_;_;_;_) : Ftype Vid Data Mid DataList -> Stm [ctor] . *** async call with !
+op asyncall!!(_;_;_;_;_) : Ftype Vid Data Mid DataList -> Stm [ctor] . *** async call with !!
+
+***Privacy statements
+op _.addCon(_) : Data Policy -> Stm [ctor] .
+op _.remCon(_) : Data Policy -> Stm [ctor] .
+***
+op return(_) : Data -> Stm [ctor] .
+op end : -> Stm .
+
+endfm
+
+view Stm from TRIV to PAOL-STATEMENTS is
+   sort Elt to Stm .
+endv
+
+fmod STM-LIST is
+pr PAOL-STATEMENTS .
+protecting LIST{Stm} * (sort List{Stm} to StmList,
+                        sort NeList{Stm} to NeStmList,
+                        op nil : -> List{Stm} to noStm,
+                        op __ : List{Stm} List{Stm} -> List{Stm} to _;_  ) .
+op if(_){_} : Expr StmList -> Stm [ctor] .
+
+endfm
+
+
+fmod PAOL-TMETHOD is
+  protecting STM-LIST .
+  protecting Param-SET .
+  protecting PAOL-MID .
+  sort Method .
+  op <_: Method | Param:_, Latt:_, Code:_> :
+    Mid ParamSet ParamSet StmList -> Method [ctor format (nib ! ob o d sb o d sb o d sb o b o)] . *** here replaced sust with paarmlist
+
+
+endfm
+
+view Method from TRIV to PAOL-TMETHOD is
+  sort Elt to Method .
+endv
+
+fmod PAOL-CLASS is
+  protecting STM-LIST .
+  protecting PAOL-ClassType .
+  protecting SET{Method} * (sort Set{Method} to MMtd,
+                            op empty : -> Set{Method} to noMethod) .
+  protecting SET{String} * (sort Set{String} to StringSet) .
+
+  var C : Ctype .
+  var MM : MMtd .
+  var AL : VidList .
+  vars N F F' : Nat .
+  sorts  Class .
+
+  --- Class declaration.
+      op <_: Cl | Par:_, Mtds:_, Ocnt:_> :
+      Ctype ParamSet MMtd Nat -> Class
+    [format (b! b o o o  b o o  b on o  b o  b! on )] .
+
+endfm
+
+
+
+mod PAOL-Constraint is
+protecting DATA .
+protecting T-PAOLENV .
+sorts GENV DENV .
+subsort GENV DENV < ENV .
+sort Constraint .
+
+op CNSTR : Action Annotation DENV -> Constraint [ctor] .
+
+
+endm
+
+view Constraint from TRIV to PAOL-Constraint is
+   sort Elt to Constraint .
+endv
+
+
+mod TYPE-system is
+protecting PAOL-Policy .
+protecting PRIV_DATA .
+protecting EXtended-UType .
+protecting UID-SET .
+protecting DATA .
+protecting PAOL-CLASS .
+protecting GTYPE-SET .
+protecting Annotated-Type  .
+protecting STM-LIST .
+protecting SET{Constraint} * (sort NeSet{Constraint} to NeSetConstraint,
+                            sort Set{Constraint} to SetConstraint,
+                            op empty  : -> Set{Constraint} to emptyConstraint ) .
+ops Int Bool : -> Btype .
+
+sorts typeCheckResult  .
+
+
+
+*** Operators for typecheck results
+
+op Result : SetConstraint GENV DENV -> typeCheckResult [ctor] .
+op getConstarints : typeCheckResult -> SetConstraint .
+op getGENV : typeCheckResult -> GENV .
+op getDENV : typeCheckResult -> DENV .
+var G : GENV .
+var D : DENV .
+var CS : SetConstraint .
+var C : Constraint .
+var gt : Gtype .
+var GTS GTS1 : GtypeSet .
+var Ct Ct1 : Ctype .
+var Var : Vid . var Dt : Data .
+var A A' : Annotation .
+var U : EXUtype .
+var U1 U2 : Utype .
+var PS : SetPl .
+var B1 B2 : Btype .
+var T T1 : Tags .
+var D1 D2 D3 : Data .
+var DL : DataList .
+var E E1 E2  : Expr .
+var I I1 : Int .
+
+sort Rulename .
+
+
+*** Operators on constarint generation
+ops Skip  Assignlocal Assignfield Asyncall return readfuture  : -> Rulename .
+op GenerateConstr : Rulename Annotation DENV -> SetConstraint [ctor].
+
+ceq GenerateConstr (Assignlocal , A , D ) =   (CNSTR(use, A, D) , CNSTR(collect, A, D))  if not(A == emptyAnnotation) .
+ceq GenerateConstr (Assignlocal , A , D ) =   emptyConstraint  if A == emptyAnnotation .
+
+ceq GenerateConstr (Assignfield , A , D ) =  (CNSTR(use, A, D) , CNSTR(collect, A, D), CNSTR(store, A, D) )  if not(A == emptyAnnotation) .
+ceq GenerateConstr (Assignfield , A , D ) =   emptyConstraint  if A == emptyAnnotation .
+
+ceq GenerateConstr (readfuture , A , D ) =  (CNSTR(use, A, D) , CNSTR(collect, A, D))  if not(A == emptyAnnotation) .
+ceq GenerateConstr (readfuture , A , D ) =   emptyConstraint  if A == emptyAnnotation .
+
+ceq GenerateConstr (return , A , D ) =   (CNSTR(use, A, D) , CNSTR(transfer, A, D))  if not(A == emptyAnnotation) .
+ceq GenerateConstr (return , A , D ) =   emptyConstraint  if A == emptyAnnotation .
+
+ceq GenerateConstr (Asyncall, A , D ) = (CNSTR(use, A, D) , CNSTR(transfer, A, D))  if not(A == emptyAnnotation) .
+ceq GenerateConstr (Asyncall, A , D ) = emptyConstraint  if A == emptyAnnotation .
+
+
+***operators for comapatibility of types
+
+op CmpTyp : Ctype Ctype -> Bool .
+op CmpTyp : Dtype Dtype -> Bool .
+op CmpTyp : EXUtype EXUtype -> Bool .
+op CmpTyp : GtypeSet GtypeSet -> Bool .
+
+
+eq CmpTyp ( B1, B2 ^ emptyAnnotation ) = true .
+eq CmpTyp (Ct, Ct1) = true  . ***if Ct == Ct1 /\ Ct in program
+ceq CmpTyp (U1, U2  ) = true if U1 == U2 .
+ceq CmpTyp (U1, UT< U2, PS >) = true  if U1 == U2 .
+ceq CmpTyp ( B1 ^ A , B2 ^ A' ) = true  if A' == emptyAnnotation /\ not(A == emptyAnnotation) .
+
+***eq CmpTyp (GTS1, GTS2 ) =
+
+
+op getType : Data -> Gtype .
+
+**** type rules for expressions
+
+
+*** Expression constructors
+op int : Nat -> Data .
+op bool : Bool -> Data .
+op tuple : ExprList -> Expr .
+
+ops plus minus times : Data Data -> Data .
+
+***operator to typechcek simple expressions.
+
+
+op typeCheckExpr : Data GENV DENV -> Gtype .
+
+var N : Nat .
+var B : Bool .
+***type checking rule for literals
+
+eq typeCheckExpr (int(N) , G , D) = Int .
+eq typeCheckExpr (bool(B) , G , D) = Bool .
+
+
+***type checking rule for varaibles
+
+***rule for refernce types and data types
+ceq typeCheckExpr ( Var , G , D ) =  getType(Var, D) if typeExist (Var, D) == true . ***maybe check for type of vid to Rt
+ceq typeCheckExpr ( Var , G , D ) =  getType(Var, G) if typeExist (Var, G) == true .
+***ceq typeCheckExpr ( this , G , D ) =  getType(Var, G) if typeExist (Var, G) == true .
+
+
+***rule for typechecking tuples
+
+  op checkTupleTypes : DataList GENV DENV -> GtypeSet .
+  eq checkTupleTypes(emp, G, D ) = empty .
+  ***ceq checkTupleTypes((D1,,DL), G , D) = (typeCheckExpr(D1, G, D) , checkTupleTypes(DL, G, D)) .
+
+
+***ceq typeCheckExpr(tuple(EList), Env) = Tuple(checkTupleTypes(EList, Env)) .
+
+***rule for tyepcehcking expr (E tag t)
+
+op addtag : Dtype Tags -> Dtype .
+eq addtag (( B1 ^ T) , T1 ) = B1 ^ oplus( T + T1) .
+op CombineTags : Expr GENV Tags -> Dtype .
+eq CombineTags( E, G, T) =  addtag( getType ( E, G) , T) .
+eq typeCheckExpr ( ( E tag T), G , D) = CombineTags( E , G , T) .
+
+*** arithmetic operators
+
+ops plus minus times : Expr Expr  -> Expr .
+***(
+ceq typeCheckExpr (plus( E, E1), G , D) = (I + I1) ^ oplus (T + T1 )
+if typeCheckExpr( E, G , D) ==  I ^ T  /\ typeCheckExpr ( E1, G , D) == I1 ^ T1 .
+
+ceq typeCheckExpr (minus( E, E1), G , D) = (I - I1) ^ oplus (T + T1 )
+if typeCheckExpr( E, G , D) ==  I ^ T  /\ typeCheckExpr ( E1, G , D) == I1 ^ T1 .
+
+ceq typeCheckExpr (times( E, E1), G , D) = (I * I1) ^ oplus (T + T1 )
+if typeCheckExpr( E, G , D) ==  I ^ T  /\ typeCheckExpr ( E1, G , D) == I1 ^ T1 .)
+
+*** _^_ collides with prelude remember
+
+
+*** operators on typechecking results .
+
+op Derivable : Data GENV DENV -> Bool .
+op typecheckStmt : Stm GENV DENV -> typeCheckResult .
+op typecheckMethod : Method GENV DENV -> typeCheckResult .
+op typecheckClass : Class GENV DENV -> typeCheckResult .
+
+
+
+
+***rule: Skip stmt
+***(
+rl [skip-type-check] :
+typecheckStmt( skip, G ,D) => Result(emptyConstraint,G , D) .
+
+Rule: Assign Local Statement, generates a constraint for action use and collect
+  crl [assign-local-type-check] :
+  typecheckStmt( assign(gt, V ; Dt), G , D) => Result(CS, G, D) if CS : = GenerateConstr (Assignlocal , A , D ) .)
+
+endm
